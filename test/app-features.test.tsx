@@ -842,6 +842,25 @@ describe("Tab in the composer", () => {
       done();
     }
   });
+
+  test("⇧Tab never indents the draft, even when no mode command claims it", async () => {
+    // The harness agent has no availableModes, so nothing claims ⇧Tab globally:
+    // the composer itself must still refuse to indent on a shifted Tab.
+    const h = harness();
+    const { t, settle, done } = await mount(h);
+    try {
+      for (const ch of "a a") t.mockInput.pressKey(ch);
+      await settle();
+      t.mockInput.pressTab({ shift: true });
+      await settle();
+      expect(h.ui.getState().drafts["h:a"]).toBe("a a");
+      t.mockInput.pressTab();
+      await settle();
+      expect(h.ui.getState().drafts["h:a"]).toBe("a a  "); // a bare Tab still indents
+    } finally {
+      done();
+    }
+  });
 });
 
 describe("a new agent in a folder that isn't in the sidebar", () => {

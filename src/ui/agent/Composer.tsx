@@ -96,8 +96,10 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   useKeyboard((k) => {
     if (!focused) return;
     if (k.name === "escape") return ui.actions.setFocus("main");
-    if (k.name !== "tab") return;
     // Tab belongs to the text you are writing: it completes a / command, or indents.
+    // ⇧Tab cycles modes instead (a global command), and a key some command already
+    // claimed (defaultPrevented) never seeds the draft — so only a bare Tab indents.
+    if (k.name !== "tab" || k.shift || k.defaultPrevented) return;
     k.preventDefault();
     const text = ref.current?.plainText ?? "";
     const completion = slashCompletion(text, slashList);
