@@ -119,6 +119,7 @@ The **Files** tab is the workspace's tree, listed by the daemon (so it works for
 ### And the rest
 
 - **Slash commands** in the composer: `/fork` to branch the conversation into a new tab, `/stop`, `/new`, `/model`, `/mode`, `/settings`.
+- **Subagents**: run `/subagents` or choose **Subagents…** from Ctrl-K. Pick a child in the current workspace to open its live conversation. Press backtick to return to the previous tab.
 - **Add a folder** (`A`) as a workspace, with shell-style `Tab` completion.
 - **Many hosts** (`H`): add, rename, reconnect and switch between daemons.
 - **Live conversation** with markdown, code blocks, tables and mermaid diagrams, and the agent's activity folded into one quiet line (`e` expands it).

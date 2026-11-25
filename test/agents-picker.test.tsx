@@ -6,9 +6,67 @@ import { createSettingsStore } from "../src/stores/settings";
 import { DEFAULT_SETTINGS } from "../src/config/settings";
 import { createUiStore } from "../src/stores/ui";
 import { AgentsModal } from "../src/ui/modals/simple";
+import { COMMANDS } from "../src/keyboard/commands";
+import { resolveSlash, visibleSlash } from "../src/ui/agent/slash";
+import { openTab, previousTab } from "../src/ui/workspace/tabs-model";
 
 // The composer's /agents runs the same openModal; the modal is what it opens.
 describe("the agents picker", () => {
+  test("both subagent commands open a picker for direct local children and Enter opens the child tab", async () => {
+    const store = createSessionStore();
+    store.actions.addHost({ id: "h", label: "h", url: "ws://x/ws" });
+    store.actions.setServerInfo("h", { serverId: "local" });
+    const ui = createUiStore();
+    ui.actions.selectWorkspace("h", "w");
+    ui.actions.updateTabs("h:w", (tabs) => openTab(tabs, "parent"));
+    const settings = createSettingsStore(DEFAULT_SETTINGS, [], { persist: false });
+    const ctx = { ui, store, settings, runtimes: {} as never, quit: () => {} };
+    const agent = (id: string, title: string, parentId: string, extra = {}) => ({
+      id, title, workspaceId: "w", status: "running", provider: "claude", updatedAt: new Date().toISOString(),
+      labels: { "paseo.parent-agent-id": parentId, "paseo.parent-server-id": "local" }, ...extra,
+    }) as never;
+    store.actions.setAgents("h", [
+      agent("parent", "Parent", ""),
+      agent("child", "Direct child", "parent"),
+      agent("grandchild", "Grandchild", "child"),
+      agent("archived", "Archived child", "parent", { archivedAt: new Date().toISOString() }),
+      agent("elsewhere", "Other workspace", "parent", { workspaceId: "other" }),
+      agent("remote", "Remote parent", "parent", { labels: { "paseo.parent-agent-id": "parent", "paseo.parent-server-id": "remote" } }),
+    ]);
+
+    const slash = resolveSlash("/subagents", visibleSlash(ctx));
+    expect(slash).not.toBeNull();
+    await slash!.run(ctx);
+    expect(ui.getState().modal).toEqual({ kind: "subagents" });
+    ui.actions.closeModal();
+    await COMMANDS.find((c) => c.id === "agent.subagents")!.run(ctx);
+    expect(ui.getState().modal).toEqual({ kind: "subagents" });
+
+    const t = await testRender(
+      <AppContext.Provider value={ctx}>
+        <AgentsModal subagents />
+      </AppContext.Provider>,
+      { width: 80, height: 24 },
+    );
+    try {
+      await t.renderOnce();
+      const frame = t.captureCharFrame();
+      expect(frame).toContain("Direct child");
+      expect(frame).toContain("running");
+      for (const hidden of ["Grandchild", "Archived child", "Other workspace", "Remote parent"]) {
+        expect(frame).not.toContain(hidden);
+      }
+      t.mockInput.pressEnter();
+      await t.renderOnce();
+      const tabs = ui.getState().tabs["h:w"]!;
+      expect(tabs.active).toBe("child");
+      expect(previousTab(tabs).active).toBe("parent");
+      expect(ui.getState().focus).toBe("main");
+    } finally {
+      t.renderer.destroy();
+    }
+  });
+
   test("lists this workspace's live agents only, marks the current one, and Enter opens the picked one", async () => {
     const origError = console.error;
     console.error = () => {};

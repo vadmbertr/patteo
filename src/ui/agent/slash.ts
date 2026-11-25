@@ -61,6 +61,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
   { name: "new", title: "Start a new agent", run: (c) => c.ui.actions.openModal({ kind: "newAgent" }) },
   { name: "agents", title: "List this workspace's agents", hint: "pick one to open as a tab", when: (c) => !!active(c).workspaceId, run: (c) => c.ui.actions.openModal({ kind: "agents" }) },
+  { name: "subagents", title: "Open this agent's subagents", when: (c) => !!active(c).agent, run: (c) => c.ui.actions.openModal({ kind: "subagents" }) },
   { name: "model", title: "Change this agent's model", run: (c) => c.ui.actions.openModal({ kind: "model" }) },
   { name: "mode", title: "Change this agent's mode", run: (c) => c.ui.actions.openModal({ kind: "mode" }) },
   { name: "thinking", title: "Change this agent's thinking level", run: (c) => c.ui.actions.openModal({ kind: "thinking" }) },

@@ -139,6 +139,8 @@ export const COMMANDS: Command[] = [
   { id: "agent.cancel", title: "Stop the running turn", group: "Agent", keys: ["ctrl+x"], inComposer: true,
     when: (c) => selection(c).agent?.status === "running",
     run: (c) => attempt(c, () => runtimeOf(c)!.cancel(selection(c).agentId!), "Stopped") },
+  { id: "agent.subagents", title: "Subagents…", group: "Agent", keys: [], when: hasAgent,
+    run: (c) => c.ui.actions.openModal({ kind: "subagents" }) },
   { id: "agent.cycleMode", title: "Next mode", group: "Agent", keys: ["shift+tab"], inComposer: true, when: (c) => (selection(c).agent?.availableModes?.length ?? 0) > 1,
     run: (c) => {
       const { agent, agentId } = selection(c);
