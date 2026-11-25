@@ -35,6 +35,26 @@ describe("keyboard routing", () => {
     expect(b.quits()).toBe(0);
   });
 
+  test("X proposes deleting the selected agent, after a confirm", () => {
+    const store = createSessionStore();
+    store.actions.addHost({ id: "h", label: "h", url: "ws://x/ws" });
+    store.actions.setActiveHost("h");
+    store.actions.setWorkspaces("h", [{ id: "w", projectId: "p", title: "W", status: "idle" } as never]);
+    store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "m", title: "A" } as never]);
+    const ui = createUiStore();
+    ui.actions.selectWorkspace("h", "w");
+    ui.actions.updateTabs("h:w", (s) => ({ ...s, tabs: ["a"], active: "a" }));
+    installDispatcher({ ui, store, runtimes: { get: () => ({}) } as never, settings: createSettingsStore(DEFAULT_SETTINGS, [], { persist: false }), quit: () => {} });
+    expect(dispatchGlobal(key("x", { shift: true }))).toBe(true);
+    const modal = ui.getState().modal as Extract<import("../src/stores/ui").Modal, { kind: "confirm" }>;
+    expect(modal?.kind).toBe("confirm");
+    expect(modal).toMatchObject({ action: "agent.delete", payload: "a", title: "Delete agent?", confirmLabel: "Delete" });
+    // nothing was called yet: the daemon only hears from the confirm modal
+    expect(ui.getState().modal).toBeTruthy();
+    ui.actions.closeModal();
+    expect(ui.getState().modal).toBeNull();
+  });
+
   test("typing letters never opens a dialog: bare keys stay in the composer", () => {
     // n is bound to "New agent" (also ctrl+o); typing it must not open the dialog,
     // and neither must a user remap that reuses a single letter.

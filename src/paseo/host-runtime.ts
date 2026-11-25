@@ -285,6 +285,11 @@ export class HostRuntime {
     return this.api.agents.ref(agentId).archive();
   }
 
+  /** Deletes the agent for good (stopping it if it is running); archive is the undoable version. */
+  delete(agentId: string) {
+    return this.api.daemon.deleteAgent(agentId);
+  }
+
   respondToPermission(agentId: string, requestId: string, response: AgentPermissionResponse) {
     return this.api.agents.ref(agentId).respondToPermission({ requestId, response });
   }

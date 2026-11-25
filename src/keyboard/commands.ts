@@ -134,6 +134,10 @@ export const COMMANDS: Command[] = [
     const { agent, agentId } = selection(c);
     c.ui.actions.openModal({ kind: "confirm", title: "Archive agent?", body: `"${agent?.title || "Untitled agent"}" will be archived and its tab closed. You can still find it in Paseo Desktop.`, confirmLabel: "Archive", action: "agent.archive", payload: agentId });
   } },
+  { id: "agent.delete", title: "Delete agent…", group: "Agent", keys: ["X"], when: hasAgent, run: (c) => {
+    const { agent, agentId } = selection(c);
+    c.ui.actions.openModal({ kind: "confirm", title: "Delete agent?", body: `"${agent?.title || "Untitled agent"}" will be stopped and deleted for good. There is no getting it back — pick "Archive agent…" if you might.`, confirmLabel: "Delete", action: "agent.delete", payload: agentId });
+  } },
 
   { id: "hosts.open", title: "Switch host…", group: "Hosts", keys: ["H"], run: (c) => c.ui.actions.openModal({ kind: "hosts" }) },
   { id: "hosts.add", title: "Add host…", group: "Hosts", keys: [], run: (c) => c.ui.actions.openModal({ kind: "addHost" }) },

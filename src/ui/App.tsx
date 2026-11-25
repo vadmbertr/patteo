@@ -104,6 +104,15 @@ function useConfirmAction() {
         const ws = ui.getState().selectedWorkspace[hostId];
         if (ws) ui.actions.updateTabs(tabsKey(hostId, ws), (s) => closeTab(s, agentId));
         ui.actions.toast("Agent archived", "success");
+      } else if (modal.action === "agent.delete") {
+        const agentId = modal.payload as string;
+        const hostId = store.getState().activeHostId!;
+        // The daemon stops a running agent as part of deleting it, and the agent
+        // subscription drops it from the store; the tab just needs closing here.
+        await runtimes.get(hostId)!.delete(agentId);
+        const ws = ui.getState().selectedWorkspace[hostId];
+        if (ws) ui.actions.updateTabs(tabsKey(hostId, ws), (s) => closeTab(s, agentId));
+        ui.actions.toast("Agent deleted", "success");
       } else if (modal.action === "host.remove") {
         await runtimes.removeHost(modal.payload as string);
         ui.actions.toast("Host removed", "success");
