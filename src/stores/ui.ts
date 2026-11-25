@@ -30,6 +30,7 @@ export type Modal =
   | { kind: "model" }
   | { kind: "mode" }
   | { kind: "thinking" }
+  | { kind: "agents" }
   | { kind: "confirm"; title: string; body: string; confirmLabel: string; action: string; payload?: unknown };
 
 export interface Toast {

@@ -5,9 +5,12 @@ import { activeCommands, commandContext, runCommand } from "../../keyboard/dispa
 import { LOCAL_KEYS, selection } from "../../keyboard/commands";
 import { keyLabel } from "../../keyboard/keys";
 import { useApp } from "../../stores/context";
+import { tabsKey } from "../../stores/ui";
 import { useTheme } from "../../theme/theme";
 import { Skeleton } from "../motion/Motion";
 import { padEnd } from "../text";
+import { relativeTime } from "../time";
+import { emptyTabs, openTab } from "../workspace/tabs-model";
 import { Overlay, overlayInner } from "./Overlay";
 import { SelectList, type ListItem } from "./SelectList";
 
@@ -261,6 +264,61 @@ export function ThinkingModal() {
             }}
           />
         )
+      )}
+    </Overlay>
+  );
+}
+
+const EMPTY_TABS = emptyTabs();
+
+/** The workspace's agents, newest first (the main-pane picker's list, filterable). */
+export function AgentsModal() {
+  const { ui, store } = useApp();
+  const t = useTheme();
+  const { width } = useTerminalDimensions();
+  const sel = selection({ ui, store });
+  const workspaceId = sel.workspaceId;
+  const agents = useMemo(
+    () =>
+      sel.host && workspaceId
+        ? Object.values(sel.host.agents)
+            .filter((a) => a.workspaceId === workspaceId && !a.archivedAt)
+            .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+        : [],
+    [sel.host?.agents, workspaceId],
+  );
+  const tabs = (sel.hostId && workspaceId ? ui.getState().tabs[tabsKey(sel.hostId, workspaceId)] : undefined) ?? EMPTY_TABS;
+  const items: ListItem[] = agents.map((a) => {
+    // The dot colors follow the main-pane picker: attention beats running beats idle.
+    const color = a.requiresAttention ? t.warning : a.status === "running" ? t.info : a.status === "error" ? t.error : t.subtle;
+    return {
+      id: a.id,
+      label: a.title || "Untitled agent",
+      detail: [a.model ?? a.provider, relativeTime(a.updatedAt)].filter(Boolean).join(" · "),
+      hint: a.id === tabs.active ? "current" : "",
+      marker: { glyph: "●", color },
+    };
+  });
+  return (
+    <Overlay title={`Agents · ${sel.workspace?.title ?? workspaceId ?? ""}`} width={64} height={Math.min(20, 6 + items.length * 2)} footer="⏎ open as a tab · esc close">
+      {items.length === 0 ? (
+        <text fg={t.subtle} wrapMode="word">{"No agents in this workspace yet. Press n to start one."}</text>
+      ) : (
+        <SelectList
+          items={items}
+          initialId={tabs.active ?? undefined}
+          width={overlayInner(64, width)}
+          height={Math.min(16, items.length * 2 + 2)}
+          placeholder="Search agents"
+          onCancel={() => ui.actions.closeModal()}
+          onSelect={(it) => {
+            ui.actions.closeModal();
+            const key = sel.hostId && workspaceId ? tabsKey(sel.hostId, workspaceId) : null;
+            if (!key) return;
+            ui.actions.updateTabs(key, (s) => openTab(s, it.id, { after: "active" }));
+            ui.actions.setPickerOpen(false);
+          }}
+        />
       )}
     </Overlay>
   );

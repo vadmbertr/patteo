@@ -211,6 +211,12 @@ describe("slash commands", () => {
     expect(resolveSlash("/fork please", SLASH_COMMANDS)).toBeNull();
     expect(resolveSlash("/nope", SLASH_COMMANDS)).toBeNull();
   });
+
+  test("/agents resolves, including as a unique prefix", () => {
+    expect(resolveSlash("/agents", SLASH_COMMANDS)?.name).toBe("agents");
+    expect(resolveSlash("/a", SLASH_COMMANDS)?.name).toBe("agents");
+    expect(slashCompletion("/ag", SLASH_COMMANDS)?.value).toBe("/agents");
+  });
 });
 
 describe("composer focus keys", () => {
