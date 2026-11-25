@@ -17,14 +17,17 @@ import { Toaster } from "./Toaster";
 import { useSelectedWorkspace } from "./workspace/use-workspace";
 import { closeTab } from "./workspace/tabs-model";
 import { WorkspacePane } from "./workspace/WorkspacePane";
+import { TerminalPane } from "./workspace/TerminalPane";
 
 const SIDEBAR_SIZES = { narrow: 28, normal: 38, wide: 48 } as const;
 
 export function App() {
+  const { ui } = useApp();
   const t = useTheme();
   const { width, height } = useTerminalDimensions();
   const sidebarVisible = useUi((s) => s.sidebarVisible);
   const panelOpen = useUi((s) => s.panelOpen);
+  const terminalOpen = useUi((s) => s.terminalOpen);
   const size = useSettings((s) => s.settings.sidebar);
   const panelSide = useSettings((s) => s.settings.panelSide);
   const { hostId, workspaceId } = useSelectedWorkspace();
@@ -32,10 +35,12 @@ export function App() {
   usePermissionToasts();
 
   const bodyHeight = Math.max(3, height - 1);
-  const sbWidth = Math.min(SIDEBAR_SIZES[size], sidebarWidth(width) + (SIDEBAR_SIZES[size] - 38));
-  const sidebarCols = sidebarVisible ? Math.max(22, sbWidth) : 0;
-  const showPanel = panelOpen && !!hostId && !!workspaceId && width >= PANEL_MIN_TERM_WIDTH;
-  const panelCols = showPanel ? panelWidth(width) : 0;
+  const terminalCols = terminalOpen ? Math.floor(width / 2) : 0;
+  const leftWidth = width - terminalCols;
+  const sbWidth = Math.min(SIDEBAR_SIZES[size], sidebarWidth(leftWidth) + (SIDEBAR_SIZES[size] - 38));
+  const sidebarCols = sidebarVisible && (!terminalOpen || leftWidth >= 42) ? Math.max(22, sbWidth) : 0;
+  const showPanel = panelOpen && !!hostId && !!workspaceId && leftWidth >= PANEL_MIN_TERM_WIDTH;
+  const panelCols = showPanel ? panelWidth(leftWidth) : 0;
   const panel = showPanel ? (
     <ErrorBoundary label="Panel">
       <ExplorerPanel hostId={hostId} workspaceId={workspaceId!} width={panelCols} height={bodyHeight} />
@@ -44,12 +49,21 @@ export function App() {
   return (
     <box flexDirection="column" width={width} height={height} backgroundColor={t.bg}>
       <box flexDirection="row" height={bodyHeight}>
-        {sidebarVisible ? <Sidebar height={bodyHeight} width={sidebarCols} /> : null}
-        {panelSide === "left" ? panel : null}
-        <ErrorBoundary label="Main pane">
-          <WorkspacePane width={Math.max(20, width - sidebarCols - panelCols)} height={bodyHeight} />
-        </ErrorBoundary>
-        {panelSide === "right" ? panel : null}
+        <box flexDirection="row" width={leftWidth} flexShrink={0} overflow="hidden" onMouseDown={() => {
+          if (ui.getState().focus === "terminal") ui.actions.setFocus("main");
+        }}>
+          {sidebarCols ? <Sidebar height={bodyHeight} width={sidebarCols} /> : null}
+          {panelSide === "left" ? panel : null}
+          <ErrorBoundary label="Main pane">
+            <WorkspacePane width={Math.max(20, leftWidth - sidebarCols - panelCols)} height={bodyHeight} />
+          </ErrorBoundary>
+          {panelSide === "right" ? panel : null}
+        </box>
+        {terminalCols > 0 ? (
+          <ErrorBoundary label="Terminal" resetKey={`${hostId}:${workspaceId}`}>
+            <TerminalPane key={`${hostId}:${workspaceId}`} hostId={hostId} workspaceId={workspaceId} width={terminalCols} height={bodyHeight} />
+          </ErrorBoundary>
+        ) : null}
       </box>
       <StatusBar />
       <ErrorBoundary label="Dialog">

@@ -60,6 +60,7 @@ export function AppRoot({ state, onQuit }: { state: AppContextValue; onQuit?: ()
     const onKey = (k: import("@opentui/core").KeyEvent) => {
       if (k.ctrl && k.name === "c") {
         if (state.ui.getState().modal) return state.ui.actions.closeModal();
+        if (state.ui.getState().focus === "terminal") return;
         if (composerHandle.hasText()) return composerHandle.clear();
         return quit();
       }

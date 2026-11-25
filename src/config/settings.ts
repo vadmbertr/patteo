@@ -22,6 +22,8 @@ export interface Settings {
   sidebar: SidebarSize;
   /** Which side the Files / Changes / PR panel opens on. */
   panelSide: "left" | "right";
+  /** Executable on the Paseo host; unset uses its default shell. */
+  terminalShell?: string;
   /** Defaults for the New agent form. */
   agentDefaults: { provider?: string; model?: string; modeId?: string };
   /** Command id → key list, overriding the defaults (e.g. { "palette.open": ["ctrl+space"] }). */
@@ -61,6 +63,8 @@ export function sanitizeSettings(raw: unknown): Settings {
     expandActivity: bool("expandActivity"),
     sidebar: r.sidebar === "narrow" || r.sidebar === "wide" ? r.sidebar : "normal",
     panelSide: r.panelSide === "left" ? "left" : "right",
+    ...(typeof r.terminalShell === "string" && r.terminalShell.trim() && !r.terminalShell.includes("\0")
+      ? { terminalShell: r.terminalShell.trim() } : {}),
     agentDefaults: { provider: str(ad.provider), model: str(ad.model), modeId: str(ad.modeId) },
     keymap,
   };

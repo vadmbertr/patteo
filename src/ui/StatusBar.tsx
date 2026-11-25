@@ -40,7 +40,8 @@ export function StatusBar() {
   } as const;
   const toggle = panelOpen ? "C hide panel  " : "";
   let hints: string;
-  if (diffPath) hints = "j/k scroll  [ ] file  esc back";
+  if (focus === "terminal") hints = "F2 hide terminal · click another pane to leave";
+  else if (diffPath) hints = "j/k scroll  [ ] file  esc back";
   else if (filePath) hints = "j/k scroll  g/G top/bottom  esc back";
   else if (focus === "panel") hints = PANEL_HINTS[panelTab];
   else if (focus === "composer") hints = "⏎ send  ⌥⏎ newline  ⇧tab mode  esc leave  ^k commands";

@@ -101,6 +101,8 @@ export const COMMANDS: Command[] = [
   { id: "composer.focusEnter", title: "Write a message", group: "Agent", keys: ["return"], hidden: true, when: (c) => hasAgent(c) && c.ui.getState().focus === "main", run: focusComposer },
 
   { id: "workspace.open", title: "Add folder…", group: "Workspace", keys: ["A"], run: (c) => c.ui.actions.openModal({ kind: "addFolder" }) },
+  { id: "terminal.toggle", title: "Toggle terminal", group: "Workspace", keys: ["f2"], inComposer: true,
+    when: (c) => !!selection(c).workspace || c.ui.getState().terminalOpen, run: (c) => c.ui.actions.toggleTerminal() },
   { id: "panel.toggle", title: "Toggle files & changes panel", group: "Workspace", keys: ["C"], when: (c) => !!selection(c).workspace,
     run: (c) => c.ui.actions.togglePanel() },
   { id: "panel.files", title: "Show files", group: "Workspace", keys: [], when: (c) => !!selection(c).workspace, run: (c) => c.ui.actions.openPanel("files") },

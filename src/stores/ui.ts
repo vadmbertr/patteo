@@ -10,7 +10,7 @@ export interface AgentTarget {
   label: string;
 }
 
-export type FocusArea = "sidebar" | "panel" | "main" | "composer";
+export type FocusArea = "sidebar" | "panel" | "main" | "composer" | "terminal";
 
 /** Tabs of the right-hand panel: the file tree, the changes (as per the PR), the PR itself. */
 export type PanelTab = "files" | "changes" | "pr";
@@ -59,6 +59,7 @@ export interface UiState {
   drafts: Record<string, string>;
   /** The Files / Changes / PR panel is showing. */
   panelOpen: boolean;
+  terminalOpen: boolean;
   panelTab: PanelTab;
   /** File whose diff replaces the conversation in the main pane. */
   diffPath: string | null;
@@ -90,6 +91,7 @@ export function createUiStore(initial: Partial<PersistedUi> = {}) {
     toasts: [],
     drafts: {},
     panelOpen: false,
+    terminalOpen: false,
     panelTab: "files",
     diffPath: null,
     filePath: null,
@@ -100,12 +102,16 @@ export function createUiStore(initial: Partial<PersistedUi> = {}) {
   const set = store.setState;
   const actions = {
     setFocus: (focus: FocusArea) => set({ focus }),
+    toggleTerminal: () => set((s) => ({
+      terminalOpen: !s.terminalOpen,
+      focus: s.terminalOpen ? (s.focus === "terminal" ? "main" : s.focus) : "terminal",
+    })),
     /** Tab order follows the screen: sidebar, then the panel and the main pane in layout order. */
     cycleFocus: (panelSide: "left" | "right" = "right") =>
       set((s) => {
         if (s.focus === "composer") return { focus: "main" };
         const rest: FocusArea[] = !s.panelOpen ? ["main"] : panelSide === "left" ? ["panel", "main"] : ["main", "panel"];
-        const order: FocusArea[] = [...(s.sidebarVisible ? (["sidebar"] as const) : []), ...rest];
+        const order: FocusArea[] = [...(s.sidebarVisible ? (["sidebar"] as const) : []), ...rest, ...(s.terminalOpen ? (["terminal"] as const) : [])];
         const i = Math.max(0, order.indexOf(s.focus));
         return { focus: order[(i + 1) % order.length] ?? "main" };
       }),

@@ -2,8 +2,8 @@
  * One HostRuntime per configured daemon. This (and the rest of src/paseo/) is the
  * only code that talks to @getpaseo/client, so protocol churn stays contained.
  */
-import { createPaseoApi, type PaseoAgentCreateOptions, type PaseoApi } from "@getpaseo/client";
-import { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import { createPaseoApi, type PaseoAgentCreateOptions, type PaseoApi, type PaseoTerminalHandle } from "@getpaseo/client";
+import { DaemonClient, type TerminalStreamEvent } from "@getpaseo/client/internal/daemon-client";
 import type { AgentPermissionResponse } from "@getpaseo/protocol/agent-types";
 import type { HostConfig } from "../config/hosts";
 import { log } from "../log";
@@ -67,6 +67,7 @@ export class HostRuntime {
   private lastSig = "";
   private cleanups: Unsub[] = [];
   private timelines = new Map<string, OpenTimeline>();
+  private shells = new Map<string, Promise<PaseoTerminalHandle>>();
 
   constructor(
     readonly config: HostConfig,
@@ -290,6 +291,55 @@ export class HostRuntime {
     return this.api.agents.ref(agentId).archive();
   }
 
+  async attachShell(
+    workspaceId: string,
+    command: string | undefined,
+    size: { rows: number; cols: number },
+    write: (event: TerminalStreamEvent) => void,
+    end: (error?: string) => void,
+    signal: AbortSignal,
+  ) {
+    const api = this.api;
+    let pending = this.shells.get(workspaceId);
+    if (!pending) {
+      pending = api.workspaces.ref(workspaceId).terminals.create({ command, size, name: "Patteo shell" });
+      this.shells.set(workspaceId, pending);
+    }
+    let shell: PaseoTerminalHandle;
+    try {
+      shell = await pending;
+    } catch (err) {
+      if (this.shells.get(workspaceId) === pending) this.shells.delete(workspaceId);
+      throw err;
+    }
+    signal.throwIfAborted();
+    const resize = (cols: number, rows: number) => api.daemon.sendTerminalInput(shell.id, { type: "resize", cols, rows, intent: "claim" });
+    const subscription = api.daemon.observeTerminal(shell.id, write, { signal });
+    subscription.subscribe({
+      snapshot: (payload) => {
+        if (payload.error) end(payload.error);
+      },
+      update: (event) => {
+        if (event.type !== "terminal_stream_exit") return;
+        if (!event.payload.error && this.shells.get(workspaceId) === pending) this.shells.delete(workspaceId);
+        end(event.payload.error);
+      },
+      error: (err) => end(errorText(err)),
+    });
+    try {
+      const ready = await subscription.ready;
+      if (ready.error) {
+        if (this.shells.get(workspaceId) === pending) this.shells.delete(workspaceId);
+        throw new Error(ready.error);
+      }
+      signal.throwIfAborted();
+      return { resize, write: (text: string) => shell.write(text) };
+    } catch (err) {
+      void subscription.release().catch(() => {});
+      throw err;
+    }
+  }
+
   /** Deletes the agent for good (stopping it if it is running); archive is the undoable version. */
   delete(agentId: string) {
     return this.api.daemon.deleteAgent(agentId);
@@ -477,6 +527,9 @@ export class HostRuntime {
     for (const t of this.timelines.values()) t.unsubscribe?.();
     this.timelines.clear();
     for (const c of this.cleanups.splice(0)) c();
+    const shells = [...this.shells.values()];
+    this.shells.clear();
+    await Promise.allSettled(shells.map(async (pending) => (await pending).kill()));
     await this.client?.close().catch(() => {});
     this.client = null;
   }

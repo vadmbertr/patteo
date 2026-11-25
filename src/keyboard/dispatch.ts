@@ -25,12 +25,14 @@ export function activeCommands(): Command[] {
 
 function findCommand(k: KeyLike): Command | undefined {
   if (!ctx) return undefined;
-  const inComposer = ctx.ui.getState().focus === "composer";
+  const focus = ctx.ui.getState().focus;
+  const inComposer = focus === "composer";
   return commands.find((c) => {
+    if (focus === "terminal" && c.id !== "terminal.toggle") return false;
     // While typing, a bare printable key belongs to the text field even if a
     // command (or a user remap) lists it; only modifier/special keys still run.
     if (inComposer && !c.inComposer) return false;
-    const hit = c.keys.some((spec) => matchKey(k, spec) && !(inComposer && isTextKeySpec(spec)));
+    const hit = c.keys.some((spec) => matchKey(k, spec) && !((inComposer || focus === "terminal") && isTextKeySpec(spec)));
     return hit && (c.when?.(ctx!) ?? true);
   });
 }
