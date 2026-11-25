@@ -26,6 +26,7 @@ export type Modal =
   | { kind: "addHost" }
   | { kind: "editHost"; id: string; label: string }
   | { kind: "addFolder"; thenAgent?: boolean }
+  | { kind: "archiveWorkspace" }
   | { kind: "settings"; section?: string }
   | { kind: "model" }
   | { kind: "mode" }
@@ -163,6 +164,13 @@ export function createUiStore(initial: Partial<PersistedUi> = {}) {
       }),
     selectWorkspace: (hostId: string, workspaceId: string) =>
       set((s) => ({ selectedWorkspace: { ...s.selectedWorkspace, [hostId]: workspaceId }, pickerOpen: false })),
+    forgetWorkspace: (hostId: string, workspaceId: string) =>
+      set((s) => {
+        const { [tabsKey(hostId, workspaceId)]: _, ...tabs } = s.tabs;
+        if (s.selectedWorkspace[hostId] !== workspaceId) return { tabs };
+        const { [hostId]: _selected, ...selectedWorkspace } = s.selectedWorkspace;
+        return { tabs, selectedWorkspace };
+      }),
     /** Applies a pure tab transition to one workspace; no-op transitions don't notify. */
     updateTabs: (key: string, fn: (t: T.WorkspaceTabs) => T.WorkspaceTabs) =>
       set((s) => {

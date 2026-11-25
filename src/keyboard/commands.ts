@@ -7,6 +7,7 @@ import type { RuntimeManager } from "../paseo/runtime-manager";
 import type { SessionStore } from "../stores/session";
 import type { SettingsStore } from "../stores/settings";
 import { tabsKey, type UiStore } from "../stores/ui";
+import { workspaceLabel } from "../ui/sidebar/model";
 
 export interface CommandCtx {
   ui: UiStore;
@@ -46,6 +47,21 @@ export function selection(ctx: Pick<CommandCtx, "ui" | "store">) {
 }
 
 const hasAgent = (c: CommandCtx) => !!selection(c).agent;
+
+export function confirmArchiveWorkspace(c: Pick<CommandCtx, "ui" | "store">, hostId: string, workspaceId: string) {
+  const workspace = c.store.getState().hosts[hostId]?.workspaces[workspaceId];
+  if (!workspace || workspace.archivingAt) return;
+  c.ui.actions.openModal({
+    kind: "confirm",
+    title: "Archive workspace?",
+    body: `Archive “${workspaceLabel(workspace)}” and its agents and terminals? ${
+      workspace.workspaceKind === "worktree" ? "Paseo may remove its managed worktree." : "Its folder stays on disk."
+    }`,
+    confirmLabel: "Archive",
+    action: "workspace.archive",
+    payload: { hostId, workspaceId },
+  });
+}
 
 /**
  * The confirm dialog that deletes an agent for good, shared by the X key and
@@ -101,6 +117,9 @@ export const COMMANDS: Command[] = [
   { id: "composer.focusEnter", title: "Write a message", group: "Agent", keys: ["return"], hidden: true, when: (c) => hasAgent(c) && c.ui.getState().focus === "main", run: focusComposer },
 
   { id: "workspace.open", title: "Add folder…", group: "Workspace", keys: ["A"], run: (c) => c.ui.actions.openModal({ kind: "addFolder" }) },
+  { id: "workspace.archive", title: "Archive a workspace…", group: "Workspace", keys: [],
+    when: (c) => Object.values(selection(c).host?.workspaces ?? {}).some((w) => !w.archivingAt),
+    run: (c) => c.ui.actions.openModal({ kind: "archiveWorkspace" }) },
   { id: "terminal.toggle", title: "Toggle terminal", group: "Workspace", keys: ["f2"], inComposer: true,
     when: (c) => !!selection(c).workspace || c.ui.getState().terminalOpen, run: (c) => c.ui.actions.toggleTerminal() },
   { id: "panel.toggle", title: "Toggle files & changes panel", group: "Workspace", keys: ["C"], when: (c) => !!selection(c).workspace,
@@ -192,6 +211,7 @@ export const COMMANDS: Command[] = [
 export const LOCAL_KEYS: { group: string; keys: string; title: string }[] = [
   { group: "Sidebar", keys: "↑↓ j k", title: "Move" },
   { group: "Sidebar", keys: "⏎ / Space", title: "Open workspace · fold project" },
+  { group: "Sidebar", keys: "a", title: "Archive highlighted workspace…" },
   { group: "Sidebar", keys: "h l", title: "Fold / unfold" },
   { group: "Tabs", keys: "1–9  [ ]", title: "Go to tab · previous / next" },
   { group: "Tabs", keys: "`", title: "Last used tab" },

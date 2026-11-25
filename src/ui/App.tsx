@@ -6,6 +6,7 @@ import { useTheme } from "../theme/theme";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { ExplorerPanel, PANEL_MIN_TERM_WIDTH, panelWidth } from "./explorer/ExplorerPanel";
 import { AddFolderModal } from "./modals/AddFolderModal";
+import { ArchiveWorkspaceModal } from "./modals/ArchiveWorkspaceModal";
 import { AddHostModal, EditHostModal, HostsModal } from "./modals/HostsModals";
 import { NewAgentModal } from "./modals/NewAgentModal";
 import { PermissionsModal } from "./modals/PermissionsModal";
@@ -148,6 +149,8 @@ function ModalLayer() {
       return <EditHostModal hostId={modal.id} label={modal.label} />;
     case "addFolder":
       return <AddFolderModal thenAgent={modal.thenAgent} />;
+    case "archiveWorkspace":
+      return <ArchiveWorkspaceModal />;
     case "settings":
       return <SettingsModal initialSection={modal.section} />;
     case "mode":
@@ -189,6 +192,18 @@ function useConfirmAction() {
       } else if (modal.action === "host.remove") {
         await runtimes.removeHost(modal.payload as string);
         ui.actions.toast("Host removed", "success");
+      } else if (modal.action === "workspace.archive") {
+        const { hostId, workspaceId } = modal.payload as { hostId: string; workspaceId: string };
+        const runtime = runtimes.get(hostId);
+        if (!runtime) throw new Error("Host unavailable");
+        await runtime.archiveWorkspace(workspaceId);
+        if (store.getState().activeHostId === hostId && ui.getState().selectedWorkspace[hostId] === workspaceId) {
+          ui.actions.setDiffPath(null);
+          ui.actions.setFilePath(null);
+          ui.actions.setFocus("sidebar");
+        }
+        ui.actions.forgetWorkspace(hostId, workspaceId);
+        ui.actions.toast("Workspace archived", "success");
       } else if (modal.action === "workspace.pr") {
         const [hostId, workspaceId] = String(modal.payload).split(":");
         if (!hostId || !workspaceId) throw new Error("No workspace selected");

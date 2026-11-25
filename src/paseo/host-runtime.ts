@@ -291,6 +291,13 @@ export class HostRuntime {
     return this.api.agents.ref(agentId).archive();
   }
 
+  async archiveWorkspace(workspaceId: string) {
+    const result = await this.api.workspaces.ref(workspaceId).archive();
+    if (result.error) throw new Error(result.error);
+    this.shells.delete(workspaceId);
+    this.store.actions.removeWorkspace(this.id, workspaceId);
+  }
+
   async attachShell(
     workspaceId: string,
     command: string | undefined,

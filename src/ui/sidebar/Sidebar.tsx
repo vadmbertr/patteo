@@ -1,5 +1,6 @@
 import { useKeyboard } from "@opentui/react";
 import { viewShouldIgnore } from "../../keyboard/dispatch";
+import { confirmArchiveWorkspace } from "../../keyboard/commands";
 import { TextAttributes } from "@opentui/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useActiveHost, useApp, useUi } from "../../stores/context";
@@ -68,12 +69,18 @@ export function Sidebar({ height, width }: { height: number; width: number }) {
 
   useKeyboard((k) => {
     if (viewShouldIgnore(k)) return;
-    if (ui.getState().focus !== "sidebar" || !store.getState().activeHostId) return;
+    const hostId = store.getState().activeHostId;
+    if (ui.getState().focus !== "sidebar" || !hostId) return;
     const rows = rowsRef.current;
     const cursor = resolveCursor(rows, ui.getState().cursor);
     const row = rows.find((r) => r.key === cursor);
     const move = (d: number) => ui.actions.setCursor(moveCursor(rows, ui.getState().cursor ?? cursor, d));
     switch (k.name) {
+      case "a":
+        if (!k.shift && !k.ctrl && !k.meta && !k.option && !k.super && row?.kind === "workspace") {
+          confirmArchiveWorkspace({ ui, store }, hostId, row.workspaceId);
+        }
+        return;
       case "j":
       case "down":
         return move(1);

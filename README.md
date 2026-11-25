@@ -123,6 +123,7 @@ The **Files** tab is the workspace's tree, listed by the daemon (so it works for
 - **Terminal**: press F2 or choose **Toggle terminal** from Ctrl-K. It opens on the far right at half width, with a shell in the selected workspace on the Paseo host. Hide and reopen it without stopping the shell. Set `"terminalShell": "zsh"` in `config.json` to use another executable; otherwise the host chooses its default shell.
 - **Resize panes** by dragging the vertical dividers with the left mouse button. Sizes are remembered until Patteo exits.
 - **Add a folder** (`A`) as a workspace, with shell-style `Tab` completion.
+- **Archive a workspace**: highlight it in the sidebar and press `a`, or use **Archive a workspace…** from Ctrl-K to search the active host. Both ask before archiving.
 - **Many hosts** (`H`): add, rename, reconnect and switch between daemons.
 - **Live conversation** with markdown, code blocks, tables and mermaid diagrams, and the agent's activity folded into one quiet line (`e` expands it).
 - **Permission requests**: allow or deny from a dialog, with the provider's own options.
