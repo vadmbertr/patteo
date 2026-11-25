@@ -29,6 +29,13 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const initial = useRef(ui.getState().drafts[draftKey] ?? "").current;
   const agent = useSession((s) => s.hosts[hostId]?.agents[agentId]);
   const ref = useRef<TextareaRenderable>(null);
+  // Keep the name, not the index: a command can disappear when the agent's status changes.
+  const slashPick = useRef<string | null>(null);
+  const [slashName, setSlashName] = useState<string | null>(null);
+  const pickSlash = (name: string | null) => {
+    slashPick.current = name;
+    setSlashName(name);
+  };
   /** Usable text columns: border (2) + padding (2) + the "› " marker (2). */
   const textWidth = Math.max(8, width - 6);
   const [lines, setLines] = useState(composerLineCount(initial, textWidth));
@@ -40,6 +47,7 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const sync = () => {
     const text = ref.current?.plainText ?? "";
     ui.actions.setDraft(draftKey, text);
+    pickSlash(null);
     const n = composerLineCount(text, textWidth);
     if (n !== lines) {
       setLines(n);
@@ -63,13 +71,18 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   };
 
   const send = async () => {
-    const text = ref.current?.plainText.trim() ?? "";
+    const raw = ref.current?.plainText ?? "";
+    const text = raw.trim();
     if (!text || sending) return;
     // "/fork" and friends act locally; anything else is a prompt.
     if (text.startsWith("/")) {
-      const command = resolveSlash(text, visibleSlash({ ui, store, runtimes }));
+      const list = visibleSlash({ ui, store, runtimes });
+      // A row the arrows highlighted wins: Enter runs what the menu is showing.
+      const command = slashPick.current
+        ? slashMatches(raw, list).find((c) => c.name === slashPick.current)
+        : resolveSlash(text, list);
       if (!command) {
-        ui.actions.toast(`No command "${text.split(" ")[0]}". Tab completes; /help lists them.`, "error", 5000);
+        ui.actions.toast(`No command for "${text.split(" ")[0]}". Use ↑↓ to pick a command or Tab to complete it.`, "error", 5000);
         return;
       }
       clear();
@@ -95,7 +108,22 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
 
   useKeyboard((k) => {
     if (!focused) return;
-    if (k.name === "escape") return ui.actions.setFocus("main");
+    if (k.name === "escape") {
+      pickSlash(null);
+      return ui.actions.setFocus("main");
+    }
+    if (!k.defaultPrevented && !k.shift && !k.ctrl && !k.meta && !k.super && (k.name === "up" || k.name === "down")) {
+      const text = ref.current?.plainText ?? "";
+      const matches = slashMatches(text, slashList);
+      if (matches.length > 0) {
+        k.preventDefault();
+        const dir = k.name === "up" ? -1 : 1;
+        const i = matches.findIndex((c) => c.name === slashPick.current);
+        const next = i < 0 ? (dir > 0 ? 0 : matches.length - 1) : (i + dir + matches.length) % matches.length;
+        pickSlash(matches[next]!.name);
+        return;
+      }
+    }
     // Tab belongs to the text you are writing: it completes a / command, or indents.
     // ⇧Tab cycles modes instead (a global command), and a key some command already
     // claimed (defaultPrevented) never seeds the draft — so only a bare Tab indents.
@@ -125,8 +153,9 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const model = agent?.model ?? agent?.provider ?? "";
   // "default" (or nothing) means the model's own level: keep the line short and leave it out.
   const thinking = agent?.thinkingOptionId && agent.thinkingOptionId !== "default" ? agent.thinkingOptionId : "";
+  const matches = focused ? slashMatches(draftText, slashList) : [];
   const hints = focused
-    ? `⏎ send · ⌥⏎ newline · tab indent · ${running ? "^X stop · " : ""}esc`
+    ? matches.length ? "↑↓ pick · ⏎ run · tab complete · esc" : `⏎ send · ⌥⏎ newline · tab indent · ${running ? "^X stop · " : ""}esc`
     : running
       ? "i write · ^X stop"
       : "i to write";
@@ -173,7 +202,7 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
           onContentChange={sync}
         />
       </box>
-      <SlashHints text={draftText} list={slashList} width={width} />
+      <SlashHints matches={matches} selected={slashName} width={width} />
       <box height={1} flexDirection="row" justifyContent="space-between" paddingLeft={1} paddingRight={1}>
         <text fg={t.accent} attributes={TextAttributes.BOLD} wrapMode="none">{left}</text>
         <text fg={t.subtle} wrapMode="none">{hints}</text>
@@ -182,24 +211,28 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   );
 }
 
-/**
- * The commands a "/" draft can run, listed above the box while nothing else is typed.
- * Enter runs the exact name (or a unique prefix); there is no menu to navigate, so the
- * text field keeps every key.
- */
-function SlashHints({ text, list, width }: { text: string; list: SlashCommand[]; width: number }) {
+function SlashHints({ matches, selected, width }: { matches: SlashCommand[]; selected: string | null; width: number }) {
   const t = useTheme();
-  const matches = slashMatches(text, list);
-  if (!text.trimStart().startsWith("/") || matches.length === 0) return null;
-  const nameW = Math.max(...matches.map((c) => c.name.length)) + 1;
+  if (matches.length === 0) return null;
+  const max = 6;
+  const index = matches.findIndex((c) => c.name === selected);
+  const start = Math.max(0, Math.min(index - max + 1, matches.length - max));
+  const shown = matches.slice(start, start + max);
+  const nameW = Math.max(...shown.map((c) => c.name.length)) + 1;
   return (
     <box flexDirection="column" flexShrink={0} paddingLeft={2} paddingBottom={0}>
-      {matches.slice(0, 6).map((c) => (
-        <text key={c.name} wrapMode="none">
-          <span fg={t.accent}>{`/${c.name.padEnd(nameW)}`}</span>
-          <span fg={t.muted}>{` ${truncate(c.hint ?? c.title, Math.max(8, width - nameW - 6))}`}</span>
-        </text>
-      ))}
+      {shown.map((c, i) => {
+        const sel = start + i === index;
+        return (
+          <box key={c.name} height={1} backgroundColor={sel ? t.element : undefined}>
+            <text wrapMode="none">
+              <span fg={sel ? t.accent : t.subtle}>{sel ? "▌" : " "}</span>
+              <span fg={t.accent}>{`/${c.name.padEnd(nameW)}`}</span>
+              <span fg={sel ? t.text : t.muted}>{` ${truncate(c.hint ?? c.title, Math.max(8, width - nameW - 6))}`}</span>
+            </text>
+          </box>
+        );
+      })}
     </box>
   );
 }

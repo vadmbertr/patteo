@@ -218,10 +218,10 @@ describe("slash commands", () => {
     expect(slashQuery("")).toBeNull();
   });
 
-  test("prefixes filter; exact names and unique prefixes resolve", () => {
-    expect(slashMatches("/", SLASH_COMMANDS).map((c) => c.name)).toEqual(SLASH_COMMANDS.map((c) => c.name));
+  test("prefixes filter, results are alphabetical, exact names and unique prefixes resolve", () => {
+    expect(slashMatches("/", SLASH_COMMANDS).map((c) => c.name)).toEqual([...SLASH_COMMANDS].map((c) => c.name).sort());
     expect(slashMatches("/for", SLASH_COMMANDS).map((c) => c.name)).toEqual(["fork"]);
-    expect(slashMatches("/m", SLASH_COMMANDS).map((c) => c.name)).toEqual(["model", "mode"]);
+    expect(slashMatches("/m", SLASH_COMMANDS).map((c) => c.name)).toEqual(["mode", "model"]); // alphabetical, not registry order
     expect(resolveSlash("/fork", SLASH_COMMANDS)?.name).toBe("fork");
     expect(resolveSlash("/fo", SLASH_COMMANDS)?.name).toBe("fork");
     expect(resolveSlash("/m", SLASH_COMMANDS)).toBeNull(); // model or mode: ambiguous

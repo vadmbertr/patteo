@@ -82,11 +82,13 @@ export function slashQuery(text: string): string | null {
   return t.slice(1);
 }
 
-/** Matching commands for the current draft, in registry order. */
+/** Matching commands for the current draft, alphabetically. */
 export function slashMatches(text: string, list: SlashCommand[]): SlashCommand[] {
   const q = slashQuery(text);
   if (q === null) return [];
-  return list.filter((c) => c.name.startsWith(q.toLowerCase()));
+  return list
+    .filter((c) => c.name.startsWith(q.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -114,7 +116,7 @@ export function resolveSlash(text: string, list: SlashCommand[]): SlashCommand |
 export function slashCompletion(text: string, list: SlashCommand[]): { value: string; candidates: SlashCommand[] } | null {
   const q = slashQuery(text);
   if (q === null || q === "") return null;
-  const candidates = list.filter((c) => c.name.startsWith(q.toLowerCase()));
+  const candidates = slashMatches(text, list);
   if (candidates.length === 0) return null;
   if (candidates.some((c) => c.name === q)) return { value: `/${q}`, candidates }; // already complete
   const shared = longestCommonPrefix(candidates.map((c) => c.name));
