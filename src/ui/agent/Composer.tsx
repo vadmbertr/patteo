@@ -151,8 +151,11 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const running = agent?.status === "running";
   const mode = agent?.availableModes?.find((m) => m.id === agent.currentModeId)?.label ?? agent?.currentModeId ?? "";
   const model = agent?.model ?? agent?.provider ?? "";
-  // "default" (or nothing) means the model's own level: keep the line short and leave it out.
-  const thinking = agent?.thinkingOptionId && agent.thinkingOptionId !== "default" ? agent.thinkingOptionId : "";
+  const requestedThinking = agent?.thinkingOptionId;
+  const effectiveThinking = agent?.effectiveThinkingOptionId;
+  const thinking = requestedThinking && requestedThinking !== "default"
+    ? requestedThinking
+    : effectiveThinking && effectiveThinking !== "default" ? `${effectiveThinking} (default)` : "default";
   const matches = focused ? slashMatches(draftText, slashList) : [];
   const hints = focused
     ? matches.length ? "↑↓ pick · ⏎ run · tab complete · esc" : `⏎ send · ⌥⏎ newline · tab indent · ${running ? "^X stop · " : ""}esc`
@@ -160,10 +163,14 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
       ? "i write · ^X stop"
       : "i to write";
   const shown = Math.max(1, Math.min(maxLines, lines));
-  // The left label and the right hints share one row; clip the label to its half.
+  const modelStatus = [mode, model && `model ${model}`].filter(Boolean).join("  ·  ");
+  const thinkingStatus = agent ? `  ·  thinking ${thinking}` : "";
+  const right = truncate(hints, width - 4 - thinkingStatus.length - Math.min(modelStatus.length, 16));
+  const leftWidth = Math.max(0, width - right.length - 4);
+  // Clip long model names before they can push the thinking setting off the row.
   const left = truncate(
-    [mode, model ? `model ${model}` : "", thinking ? `thinking ${thinking}` : "", sending ? "sending…" : ""].filter(Boolean).join("  ·  "),
-    Math.max(8, width - hints.length - 4),
+    `${truncate(modelStatus, Math.max(1, leftWidth - thinkingStatus.length))}${thinkingStatus}${sending ? "  ·  sending…" : ""}`,
+    leftWidth,
   );
 
   return (
@@ -205,7 +212,7 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
       <SlashHints matches={matches} selected={slashName} width={width} />
       <box height={1} flexDirection="row" justifyContent="space-between" paddingLeft={1} paddingRight={1}>
         <text fg={t.accent} attributes={TextAttributes.BOLD} wrapMode="none">{left}</text>
-        <text fg={t.subtle} wrapMode="none">{hints}</text>
+        <text fg={t.subtle} wrapMode="none">{right}</text>
       </box>
     </box>
   );

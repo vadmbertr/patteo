@@ -908,17 +908,21 @@ describe("Tab in the composer", () => {
     }
   });
 
-  test("the status line shows the thinking level, but not the model default", async () => {
+  test("the status line shows explicit and default thinking levels", async () => {
     const h = harness();
-    h.store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "haiku", thinkingOptionId: "high", title: "A" } as never]);
+    const update = (thinkingOptionId?: string, effectiveThinkingOptionId?: string, model = "haiku") =>
+      h.store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model, thinkingOptionId, effectiveThinkingOptionId, title: "A" } as never]);
+    update("high");
     const { t, settle, done } = await mount(h);
     try {
       await settle();
-      // The row is shared with the right-hand hints, so the label may be clipped; the segment is present either way.
-      expect(t.captureCharFrame()).toContain("thinking");
-      h.store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "haiku", thinkingOptionId: "default", title: "A" } as never]);
+      expect(t.captureCharFrame()).toContain("model haiku  ·  thinking high");
+      update("default", "low", "a-very-long-provider-name/a-very-long-model-name");
       await settle();
-      expect(t.captureCharFrame()).not.toContain("thinking");
+      expect(t.captureCharFrame()).toContain("thinking low (default)");
+      update();
+      await settle();
+      expect(t.captureCharFrame()).toContain("model haiku  ·  thinking default");
     } finally {
       done();
     }
