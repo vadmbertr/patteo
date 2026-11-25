@@ -55,6 +55,23 @@ describe("keyboard routing", () => {
     expect(ui.getState().modal).toBeNull();
   });
 
+  test("/delete in the composer proposes the very same confirm", () => {
+    const store = createSessionStore();
+    store.actions.addHost({ id: "h", label: "h", url: "ws://x/ws" });
+    store.actions.setActiveHost("h");
+    store.actions.setWorkspaces("h", [{ id: "w", projectId: "p", title: "W", status: "idle" } as never]);
+    store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "m", title: "A" } as never]);
+    const ui = createUiStore();
+    ui.actions.selectWorkspace("h", "w");
+    ui.actions.updateTabs("h:w", (s) => ({ ...s, tabs: ["a"], active: "a" }));
+    const runtimes = { get: () => ({}) } as never;
+    const command = resolveSlash("/delete", visibleSlash({ ui, store, runtimes }));
+    expect(command?.name).toBe("delete");
+    command!.run({ ui, store, runtimes });
+    // The composer's agent — the tab the /delete was typed into — is the one offered.
+    expect(ui.getState().modal).toMatchObject({ kind: "confirm", action: "agent.delete", payload: "a", title: "Delete agent?", confirmLabel: "Delete" });
+  });
+
   test("typing letters never opens a dialog: bare keys stay in the composer", () => {
     // n is bound to "New agent" (also ctrl+o); typing it must not open the dialog,
     // and neither must a user remap that reuses a single letter.
@@ -190,7 +207,7 @@ test("permissions dialog shows the request and its actions", async () => {
   }
 });
 
-import { SLASH_COMMANDS, resolveSlash, slashCompletion, slashMatches, slashQuery } from "../src/ui/agent/slash";
+import { SLASH_COMMANDS, resolveSlash, slashCompletion, slashMatches, slashQuery, visibleSlash } from "../src/ui/agent/slash";
 
 describe("slash commands", () => {
   test("only a leading / without arguments is a query", () => {
@@ -212,10 +229,13 @@ describe("slash commands", () => {
     expect(resolveSlash("/nope", SLASH_COMMANDS)).toBeNull();
   });
 
-  test("/agents resolves, including as a unique prefix", () => {
+  test("/agents and /delete resolve, including as unique prefixes", () => {
     expect(resolveSlash("/agents", SLASH_COMMANDS)?.name).toBe("agents");
     expect(resolveSlash("/a", SLASH_COMMANDS)?.name).toBe("agents");
+    expect(resolveSlash("/delete", SLASH_COMMANDS)?.name).toBe("delete");
+    expect(resolveSlash("/d", SLASH_COMMANDS)?.name).toBe("delete");
     expect(slashCompletion("/ag", SLASH_COMMANDS)?.value).toBe("/agents");
+    expect(slashCompletion("/del", SLASH_COMMANDS)?.value).toBe("/delete");
   });
 });
 

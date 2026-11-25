@@ -5,7 +5,7 @@
 import type { RuntimeManager } from "../../paseo/runtime-manager";
 import { tabsKey, type UiStore } from "../../stores/ui";
 import type { SessionStore } from "../../stores/session";
-import { selection } from "../../keyboard/commands";
+import { confirmDeleteAgent, selection } from "../../keyboard/commands";
 import * as T from "../workspace/tabs-model";
 import { longestCommonPrefix } from "../../util/text";
 
@@ -51,6 +51,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
       await c.runtimes.get(hostId)!.cancel(agentId);
       c.ui.actions.toast("Stopped");
     },
+  },
+  {
+    name: "delete",
+    title: "Delete this agent for good",
+    hint: "the X key's confirm, from the composer",
+    when: (c) => !!active(c).agent,
+    run: (c) => confirmDeleteAgent(c),
   },
   { name: "new", title: "Start a new agent", run: (c) => c.ui.actions.openModal({ kind: "newAgent" }) },
   { name: "agents", title: "List this workspace's agents", hint: "pick one to open as a tab", when: (c) => !!active(c).workspaceId, run: (c) => c.ui.actions.openModal({ kind: "agents" }) },
