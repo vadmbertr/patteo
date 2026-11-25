@@ -7,6 +7,8 @@ import { truncate } from "../text";
 import { resolveSlash, slashCompletion, slashMatches, slashQuery, visibleSlash, type SlashCommand } from "./slash";
 import { composerHeight, composerLineCount } from "./composer-size";
 
+const compactTokens = new Intl.NumberFormat("en-US", { notation: "compact" });
+
 /** Lets the global Ctrl+C know whether to clear the composer instead of quitting. */
 /** What the app (and the global key handler) can ask the open composer to do. */
 export const composerHandle = {
@@ -164,12 +166,21 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
       : "i to write";
   const shown = Math.max(1, Math.min(maxLines, lines));
   const modelStatus = [mode, model && `model ${model}`].filter(Boolean).join("  ·  ");
-  const thinkingStatus = agent ? `  ·  thinking ${thinking}` : "";
-  const right = truncate(hints, width - 4 - thinkingStatus.length - Math.min(modelStatus.length, 16));
+  const used = agent?.lastUsage?.contextWindowUsedTokens;
+  const limit = agent?.lastUsage?.contextWindowMaxTokens;
+  const tokenCount = used == null ? "" : `${compactTokens.format(used)} tokens`;
+  const context = used != null && limit != null && limit > 0
+    ? `${compactTokens.format(used)} / ${compactTokens.format(limit)} tokens (${Math.round(used / limit * 100)}%)`
+    : tokenCount;
+  const thinkingStatus = agent ? `thinking ${thinking}` : "";
+  const statusTail = (usage: string) => [thinkingStatus, usage, sending ? "sending…" : ""].filter(Boolean).map((part) => `  ·  ${part}`).join("");
+  const modelMin = Math.min(modelStatus.length, 16);
+  const tail = [context, tokenCount].map(statusTail).find((part) => part.length <= width - 4 - modelMin) ?? statusTail("");
+  const right = truncate(hints, width - 4 - tail.length - modelMin);
   const leftWidth = Math.max(0, width - right.length - 4);
-  // Clip long model names before they can push the thinking setting off the row.
+  // Clip long model names before they can push thinking and usage off the row.
   const left = truncate(
-    `${truncate(modelStatus, Math.max(1, leftWidth - thinkingStatus.length))}${thinkingStatus}${sending ? "  ·  sending…" : ""}`,
+    `${truncate(modelStatus, Math.max(1, leftWidth - tail.length))}${tail}`,
     leftWidth,
   );
 

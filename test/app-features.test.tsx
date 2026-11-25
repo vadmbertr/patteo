@@ -839,14 +839,14 @@ describe("Tab in the composer", () => {
     return { store, ui, runtimes, settings };
   }
 
-  async function mount(h: ReturnType<typeof harness>) {
+  async function mount(h: ReturnType<typeof harness>, width = 70) {
     const origError = console.error;
     console.error = () => {};
     const t = await testRender(
       <AppContext.Provider value={{ store: h.store, ui: h.ui, runtimes: h.runtimes, settings: h.settings }}>
-        <box width={70} height={12}><Composer hostId="h" agentId="a" width={70} maxLines={6} /></box>
+        <box width={width} height={12}><Composer hostId="h" agentId="a" width={width} maxLines={6} /></box>
       </AppContext.Provider>,
-      { width: 70, height: 12 },
+      { width, height: 12 },
     );
     await t.renderOnce();
     return { t, settle: async () => { await Bun.sleep(25); await t.renderOnce(); }, done: () => { t.renderer.destroy(); console.error = origError; } };
@@ -923,6 +923,25 @@ describe("Tab in the composer", () => {
       update();
       await settle();
       expect(t.captureCharFrame()).toContain("model haiku  ·  thinking default");
+    } finally {
+      done();
+    }
+  });
+
+  test.each([70, 52])("the status line uses reported context usage at width %i", async (width) => {
+    const h = harness();
+    const update = (lastUsage: { contextWindowUsedTokens?: number; contextWindowMaxTokens?: number; inputTokens?: number }) =>
+      h.store.actions.setAgents("h", [{ id: "a", status: "idle", provider: "opencode", model: "test", lastUsage } as never]);
+    update({ contextWindowUsedTokens: 42_000, contextWindowMaxTokens: 200_000 });
+    const { t, settle, done } = await mount(h, width);
+    try {
+      expect(t.captureCharFrame()).toContain(width === 70 ? "42K / 200K tokens (21%)" : "42K tokens");
+      update({ contextWindowUsedTokens: 0 });
+      await settle();
+      expect(t.captureCharFrame()).toContain("0 tokens");
+      update({ inputTokens: 500 });
+      await settle();
+      expect(t.captureCharFrame()).not.toContain("tokens");
     } finally {
       done();
     }
