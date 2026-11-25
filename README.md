@@ -120,7 +120,7 @@ The **Files** tab is the workspace's tree, listed by the daemon (so it works for
 
 - **Slash commands** in the composer: `/fork` to branch the conversation into a new tab, `/stop`, `/new`, `/model`, `/mode`, `/settings`.
 - **Subagents**: run `/subagents` or choose **Subagents…** from Ctrl-K. Pick a child in the current workspace to open its live conversation. Press backtick to return to the previous tab.
-- **Terminal**: press F2 or choose **Toggle terminal** from Ctrl-K. It opens on the far right at half width, with a shell in the selected workspace on the Paseo host. Hide and reopen it without stopping the shell. Set `"terminalShell": "zsh"` in `config.json` to use another executable; otherwise the host chooses its default shell.
+- **Terminal**: press F2 or choose **Toggle terminal** from Ctrl-K. It opens on the far right at half the chat pane’s width before opening, subject to minimum pane widths. Hide and reopen it without stopping the shell. Set `"terminalShell": "zsh"` in `config.json` to use another executable; otherwise the host chooses its default shell.
 - **Resize panes** by dragging the vertical dividers with the left mouse button. Sizes are remembered until Patteo exits.
 - **Add a folder** (`A`) as a workspace, with shell-style `Tab` completion.
 - **Archive a workspace**: highlight it in the sidebar and press `a`, or use **Archive a workspace…** from Ctrl-K to search the active host. Both ask before archiving.

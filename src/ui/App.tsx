@@ -70,26 +70,30 @@ export function App() {
   usePermissionToasts();
 
   const bodyHeight = Math.max(3, height - 1);
+  const explorerMin = panelWidth(PANEL_MIN_TERM_WIDTH);
+  const layoutChat = (available: number) => {
+    const sbWidth = Math.min(SIDEBAR_SIZES[size], sidebarWidth(available) + (SIDEBAR_SIZES[size] - 38));
+    const narrowSidebar = Math.max(22, sidebarWidth(available) + SIDEBAR_SIZES.narrow - SIDEBAR_SIZES.normal);
+    const showSidebar = sidebarVisible && available >= MAIN_MIN + narrowSidebar + 1;
+    const showPanel = panelOpen && !!hostId && !!workspaceId && available >= PANEL_MIN_TERM_WIDTH;
+    const leftBudget = available - MAIN_MIN - Number(showSidebar) - Number(showPanel);
+    const sidebarCols = showSidebar ? clampWidth(sidebarWidthOverride ?? sbWidth, narrowSidebar, leftBudget - (showPanel ? explorerMin : 0)) : 0;
+    const panelCols = showPanel ? clampWidth(explorerWidthOverride ?? panelWidth(available), explorerMin, leftBudget - sidebarCols) : 0;
+    const mainCols = available - sidebarCols - panelCols - Number(showSidebar) - Number(showPanel);
+    return { narrowSidebar, showSidebar, showPanel, leftBudget, sidebarCols, panelCols, mainCols };
+  };
   const terminalCols = terminalOpen
-    ? clampWidth(terminalWidthOverride ?? Math.floor(width / 2), TERMINAL_MIN, Math.max(0, width - MAIN_MIN - 1))
+    ? clampWidth(terminalWidthOverride ?? Math.floor(layoutChat(width).mainCols / 2), TERMINAL_MIN, Math.max(0, width - MAIN_MIN - 1))
     : 0;
   const leftWidth = width - terminalCols - Number(terminalCols > 0);
-  const sbWidth = Math.min(SIDEBAR_SIZES[size], sidebarWidth(leftWidth) + (SIDEBAR_SIZES[size] - 38));
-  const showPanel = panelOpen && !!hostId && !!workspaceId && leftWidth >= PANEL_MIN_TERM_WIDTH;
-  const narrowSidebar = Math.max(22, sidebarWidth(leftWidth) + SIDEBAR_SIZES.narrow - SIDEBAR_SIZES.normal);
-  const explorerMin = panelWidth(PANEL_MIN_TERM_WIDTH);
-  const showSidebar = sidebarVisible && leftWidth >= MAIN_MIN + narrowSidebar + 1;
-  const leftBudget = leftWidth - MAIN_MIN - Number(showSidebar) - Number(showPanel);
-  const sidebarCols = showSidebar ? clampWidth(sidebarWidthOverride ?? sbWidth, narrowSidebar, leftBudget - (showPanel ? explorerMin : 0)) : 0;
-  const panelCols = showPanel ? clampWidth(explorerWidthOverride ?? panelWidth(leftWidth), explorerMin, leftBudget - sidebarCols) : 0;
-  const mainCols = leftWidth - sidebarCols - panelCols - Number(showSidebar) - Number(showPanel);
+  const { narrowSidebar, showSidebar, showPanel, leftBudget, sidebarCols, panelCols, mainCols } = layoutChat(leftWidth);
   const panelDivider = showPanel ? (
     <Divider name="explorer" width={panelCols} min={explorerMin} max={leftBudget - sidebarCols}
       grow={panelSide === "left" ? 1 : -1} onResize={setExplorerWidth} />
   ) : null;
-  const panel = showPanel ? (
+  const panel = showPanel && hostId && workspaceId ? (
     <ErrorBoundary label="Panel">
-      <ExplorerPanel hostId={hostId} workspaceId={workspaceId!} width={panelCols} height={bodyHeight} />
+      <ExplorerPanel hostId={hostId} workspaceId={workspaceId} width={panelCols} height={bodyHeight} />
     </ErrorBoundary>
   ) : null;
   return (

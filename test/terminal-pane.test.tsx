@@ -4,7 +4,7 @@ import { createAppState, AppRoot } from "../src/app-root";
 import { sanitizeSettings } from "../src/config/settings";
 import type { HostRuntime } from "../src/paseo/host-runtime";
 
-test("the terminal opens on the right half, receives input, and detaches when hidden", async () => {
+test("the terminal opens at half the previous chat width, receives input, and detaches when hidden", async () => {
   const state = createAppState({ settings: sanitizeSettings({ terminalShell: " bash " }) });
   state.store.actions.addHost({ id: "h", label: "Host", url: "ws://localhost/ws" });
   state.store.actions.setWorkspaces("h", [{ id: "w", title: "Workspace" }] as never);
@@ -28,9 +28,9 @@ test("the terminal opens on the right half, receives input, and detaches when hi
     await settle();
     t.mockInput.pressKey("F2");
     await settle();
-    expect(t.captureCharFrame().split("\n")[0]!.indexOf("Terminal")).toBeGreaterThan(49);
+    expect(t.renderer.root.findDescendantById("resize-terminal")!.x).toBe(69);
     expect(t.captureCharFrame()).toContain("shell ready");
-    expect(attachments[0]).toMatchObject({ workspace: "w", command: "bash", cols: 48 });
+    expect(attachments[0]).toMatchObject({ workspace: "w", command: "bash", cols: 28 });
     t.mockInput.pressKey("q");
     t.mockInput.pressCtrlC();
     expect(input.join("")).toBe("q\x03");
@@ -74,6 +74,9 @@ test.each(["left", "right"] as const)("mouse dividers resize all panes with the 
   };
   try {
     await settle();
+    expect(x("terminal")).toBe(144);
+    await drag("terminal", 99);
+    expect(x("terminal")).toBe(99);
     expect(x("sidebar")).toBe(38);
     await drag("sidebar", 1);
     expect(x("sidebar")).toBe(28);
@@ -84,14 +87,17 @@ test.each(["left", "right"] as const)("mouse dividers resize all panes with the 
     expect(x("explorer")).toBe(before + grow * 10);
     await drag("explorer", grow === 1 ? 0 : 198);
     expect(x("explorer")).toBe(before);
-
-    expect(x("terminal")).toBe(99);
     await drag("terminal", 1);
     expect(x("terminal")).toBe(90);
     expect(x("explorer")).toBeGreaterThan(x("sidebar"));
     await drag("terminal", 198);
     expect(x("terminal")).toBe(179);
     expect(sizes.at(-1)).toBe(18);
+    t.mockInput.pressKey("F2");
+    await settle();
+    t.mockInput.pressKey("F2");
+    await settle();
+    expect(x("terminal")).toBe(179);
   } finally {
     t.renderer.destroy();
   }
