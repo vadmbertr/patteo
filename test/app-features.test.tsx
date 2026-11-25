@@ -881,6 +881,22 @@ describe("Tab in the composer", () => {
       done();
     }
   });
+
+  test("the status line shows the thinking level, but not the model default", async () => {
+    const h = harness();
+    h.store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "haiku", thinkingOptionId: "high", title: "A" } as never]);
+    const { t, settle, done } = await mount(h);
+    try {
+      await settle();
+      // The row is shared with the right-hand hints, so the label may be clipped; the segment is present either way.
+      expect(t.captureCharFrame()).toContain("thinking");
+      h.store.actions.setAgents("h", [{ id: "a", status: "idle", cwd: "/r", workspaceId: "w", updatedAt: new Date().toISOString(), provider: "claude", model: "haiku", thinkingOptionId: "default", title: "A" } as never]);
+      await settle();
+      expect(t.captureCharFrame()).not.toContain("thinking");
+    } finally {
+      done();
+    }
+  });
 });
 
 describe("a new agent in a folder that isn't in the sidebar", () => {

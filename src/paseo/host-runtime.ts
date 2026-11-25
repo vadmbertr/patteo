@@ -281,6 +281,11 @@ export class HostRuntime {
     return this.api.daemon.setAgentModel(agentId, modelId);
   }
 
+  /** Sets the model's thinking level; null goes back to the model's default ("default" in snapshots). */
+  setThinking(agentId: string, thinkingOptionId: string | null) {
+    return this.api.daemon.setAgentThinkingOption(agentId, thinkingOptionId);
+  }
+
   archive(agentId: string) {
     return this.api.agents.ref(agentId).archive();
   }

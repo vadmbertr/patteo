@@ -55,6 +55,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "new", title: "Start a new agent", run: (c) => c.ui.actions.openModal({ kind: "newAgent" }) },
   { name: "model", title: "Change this agent's model", run: (c) => c.ui.actions.openModal({ kind: "model" }) },
   { name: "mode", title: "Change this agent's mode", run: (c) => c.ui.actions.openModal({ kind: "mode" }) },
+  { name: "thinking", title: "Change this agent's thinking level", run: (c) => c.ui.actions.openModal({ kind: "thinking" }) },
   { name: "settings", title: "Open settings", run: (c) => c.ui.actions.openModal({ kind: "settings" }) },
 ];
 

@@ -144,7 +144,7 @@ export function ModeModal() {
   );
 }
 
-type ModelList = { id: string; label: string; description?: string; provider?: string }[];
+type ModelList = { id: string; label: string; description?: string; provider?: string; thinkingOptions?: { id: string; label: string }[] }[];
 
 /** Picks the row label: the upstream provider in front when the daemon lists one
  *  (e.g. "mistral/GLM-5.3" — the same pretty name can come from several providers). */
@@ -200,6 +200,72 @@ export function ModelModal() {
   );
 }
 
+/** Set to make the agent fall back to the model's own default thinking level. */
+const THINKING_DEFAULT = "__default__";
+
+export function ThinkingModal() {
+  const { ui, store, runtimes } = useApp();
+  const t = useTheme();
+  const { width } = useTerminalDimensions();
+  const sel = selection({ ui, store });
+  const [models, setModels] = useState<ModelList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sel.agent || !sel.hostId) return;
+    runtimes
+      .get(sel.hostId)!
+      .listModels(sel.agent.provider)
+      .then((r) => setModels(normalizeModels(r)))
+      .catch((e) => setError(String(e?.message ?? e)));
+  }, []);
+  useKeyboard((k) => {
+    if (!models && k.name === "escape") ui.actions.closeModal();
+  });
+  // Snapshots carry "default" (or nothing at all) when the agent runs the model's own level.
+  const current = sel.agent?.thinkingOptionId && sel.agent.thinkingOptionId !== "default" ? sel.agent.thinkingOptionId : undefined;
+  const model = models?.find((m) => m.id === sel.agent?.model);
+  const empty = model && !(model.thinkingOptions?.length ?? 0) ? (
+    <text fg={t.subtle} wrapMode="word">{`"${modelLabel(model)}" has no thinking levels to pick from.`}</text>
+  ) : null;
+  const items = [
+    { id: THINKING_DEFAULT, label: "Model default", hint: current ? "" : "current", marker: { glyph: current ? "○" : "●", color: current ? t.subtle : t.accent } },
+    ...(model?.thinkingOptions ?? []).map((o) => ({ id: o.id, label: o.label, hint: o.id === current ? "current" : "", marker: { glyph: o.id === current ? "●" : "○", color: o.id === current ? t.accent : t.subtle } })),
+  ];
+  return (
+    <Overlay title={`Thinking · ${model ? modelLabel(model) : sel.agent?.model ?? ""}`} width={64} height={Math.min(20, 6 + items.length * 2)} footer="⏎ switch · esc close">
+      {error ? (
+        <text fg={t.error}>{error}</text>
+      ) : !models ? (
+        <Skeleton rows={4} width={overlayInner(64, width)} gap={0} />
+      ) : !model ? (
+        <text fg={t.subtle} wrapMode="word">{"This agent's model isn't in the provider's list (it may have changed since)."}</text>
+      ) : (
+        empty ?? (
+          <SelectList
+            items={items}
+            filterable={false}
+            initialId={current ?? THINKING_DEFAULT}
+            width={overlayInner(64, width)}
+            height={items.length}
+            onCancel={() => ui.actions.closeModal()}
+            onSelect={async (it) => {
+              ui.actions.closeModal();
+              try {
+                // The provider can answer with a notice (e.g. it cannot apply the change): show that as-is.
+                const notice = (await runtimes.get(sel.hostId!)!.setThinking(sel.agentId!, it.id === THINKING_DEFAULT ? null : it.id)) as { type?: string; message?: string } | null;
+                if (notice?.message) ui.actions.toast(notice.message, notice.type === "error" ? "error" : "info", 6000);
+                else ui.actions.toast(`Thinking: ${it.label}`, "success");
+              } catch (err) {
+                ui.actions.toast(String(err instanceof Error ? err.message : err), "error");
+              }
+            }}
+          />
+        )
+      )}
+    </Overlay>
+  );
+}
+
 /** listModels payload → simple list (tolerates field-name differences across daemon versions). */
 export function normalizeModels(r: unknown): ModelList {
   const raw = (r as { models?: unknown[] })?.models;
@@ -221,6 +287,9 @@ export function normalizeModels(r: unknown): ModelList {
         label: String(m.label ?? m.name ?? m.displayName ?? m.id ?? ""),
         description: typeof m.description === "string" ? m.description : undefined,
         provider,
+        thinkingOptions: Array.isArray(m.thinkingOptions)
+          ? (m.thinkingOptions as Record<string, unknown>[]).filter((o) => typeof o?.id === "string").map((o) => ({ id: String(o.id), label: String(o.label ?? o.id) }))
+          : undefined,
       };
     })
     .filter((m) => m.id);

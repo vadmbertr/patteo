@@ -123,6 +123,8 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const running = agent?.status === "running";
   const mode = agent?.availableModes?.find((m) => m.id === agent.currentModeId)?.label ?? agent?.currentModeId ?? "";
   const model = agent?.model ?? agent?.provider ?? "";
+  // "default" (or nothing) means the model's own level: keep the line short and leave it out.
+  const thinking = agent?.thinkingOptionId && agent.thinkingOptionId !== "default" ? agent.thinkingOptionId : "";
   const hints = focused
     ? `⏎ send · ⌥⏎ newline · tab indent · ${running ? "^X stop · " : ""}esc`
     : running
@@ -131,7 +133,7 @@ export function Composer({ hostId, agentId, width, maxLines = COMPOSER_MAX_LINES
   const shown = Math.max(1, Math.min(maxLines, lines));
   // The left label and the right hints share one row; clip the label to its half.
   const left = truncate(
-    [mode, model ? `model ${model}` : "", sending ? "sending…" : ""].filter(Boolean).join("  ·  "),
+    [mode, model ? `model ${model}` : "", thinking ? `thinking ${thinking}` : "", sending ? "sending…" : ""].filter(Boolean).join("  ·  "),
     Math.max(8, width - hints.length - 4),
   );
 

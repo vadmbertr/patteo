@@ -127,6 +127,12 @@ export const COMMANDS: Command[] = [
   { id: "agent.model", title: "Change model…", group: "Agent", keys: ["M"], when: hasAgent,
     detail: (c) => selection(c).agent?.model ?? undefined,
     run: (c) => c.ui.actions.openModal({ kind: "model" }) },
+  { id: "agent.thinking", title: "Change thinking…", group: "Agent", keys: [], when: hasAgent,
+    detail: (c) => {
+      const id = selection(c).agent?.thinkingOptionId;
+      return id && id !== "default" ? id : undefined;
+    },
+    run: (c) => c.ui.actions.openModal({ kind: "thinking" }) },
   { id: "agent.permissions", title: "Answer questions & review permissions", group: "Agent", keys: ["p"],
     when: (c) => Object.values(selection(c).host?.agents ?? {}).some((a) => (a.pendingPermissions?.length ?? 0) > 0),
     run: (c) => c.ui.actions.openModal({ kind: "permissions" }) },
