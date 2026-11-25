@@ -144,7 +144,13 @@ export function ModeModal() {
   );
 }
 
-type ModelList = { id: string; label: string; description?: string }[];
+type ModelList = { id: string; label: string; description?: string; provider?: string }[];
+
+/** Picks the row label: the upstream provider in front when the daemon lists one
+ *  (e.g. "mistral/GLM-5.3" — the same pretty name can come from several providers). */
+export function modelLabel(m: { label: string; provider?: string }): string {
+  return m.provider ? `${m.provider}/${m.label}` : m.label;
+}
 
 export function ModelModal() {
   const { ui, store, runtimes } = useApp();
@@ -173,7 +179,7 @@ export function ModelModal() {
         <Skeleton rows={6} width={overlayInner(64, width)} gap={0} />
       ) : (
         <SelectList
-          items={models.map((m) => ({ id: m.id, label: m.label, detail: m.description, hint: m.id === current ? "current" : "", marker: { glyph: m.id === current ? "●" : "○", color: m.id === current ? t.accent : t.subtle } }))}
+          items={models.map((m) => ({ id: m.id, label: modelLabel(m), detail: m.description, hint: m.id === current ? "current" : "", marker: { glyph: m.id === current ? "●" : "○", color: m.id === current ? t.accent : t.subtle } }))}
           initialId={current}
           width={overlayInner(64, width)}
           height={16}
@@ -196,12 +202,26 @@ export function ModelModal() {
 
 /** listModels payload → simple list (tolerates field-name differences across daemon versions). */
 export function normalizeModels(r: unknown): ModelList {
-  const raw = (r as { models?: unknown[] })?.models ?? (Array.isArray(r) ? r : []);
-  return (raw as Record<string, unknown>[])
-    .map((m) => ({
-      id: String(m.id ?? m.modelId ?? m.value ?? ""),
-      label: String(m.label ?? m.name ?? m.displayName ?? m.id ?? ""),
-      description: typeof m.description === "string" ? m.description : undefined,
-    }))
+  const raw = (r as { models?: unknown[] })?.models;
+  const list = Array.isArray(raw) ? raw : Array.isArray(r) ? r : [];
+  return (list as Record<string, unknown>[])
+    .map((m) => {
+      const id = String(m.id ?? m.modelId ?? m.value ?? "");
+      // metadata.providerId names the upstream that serves this model (e.g.
+      // "mistral" inside the opencode provider); ids like "openai/gpt-5" carry it in front.
+      const meta = (m.metadata ?? {}) as Record<string, unknown>;
+      const provider =
+        typeof meta.providerId === "string" && meta.providerId
+          ? meta.providerId
+          : id.includes("/")
+            ? id.slice(0, id.indexOf("/"))
+            : undefined;
+      return {
+        id,
+        label: String(m.label ?? m.name ?? m.displayName ?? m.id ?? ""),
+        description: typeof m.description === "string" ? m.description : undefined,
+        provider,
+      };
+    })
     .filter((m) => m.id);
 }

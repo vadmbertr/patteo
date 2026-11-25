@@ -9,7 +9,7 @@ import { openTab } from "../workspace/tabs-model";
 import { Skeleton, WorkingLine } from "../motion/Motion";
 import { truncate } from "../text";
 import { Overlay } from "./Overlay";
-import { normalizeModels } from "./simple";
+import { modelLabel, normalizeModels } from "./simple";
 
 interface ProviderInfo {
   provider: string;
@@ -57,7 +57,7 @@ export function NewAgentModal({ target }: { target?: AgentTarget }) {
 
   const [providers, setProviders] = useState<ProviderInfo[] | null>(null);
   const [pi, setPi] = useState(0);
-  const [models, setModels] = useState<{ id: string; label: string }[] | null>(null);
+  const [models, setModels] = useState<{ id: string; label: string; provider?: string }[] | null>(null);
   const [mi, setMi] = useState(0);
   const [modeIdx, setModeIdx] = useState(0);
   const [field, setField] = useState<Field>("prompt");
@@ -183,7 +183,7 @@ export function NewAgentModal({ target }: { target?: AgentTarget }) {
       ) : (
         <>
           {pickRow("provider", "Provider", provider?.label ?? "none available", providers ? `${pi + 1}/${providers.length}` : undefined)}
-          {pickRow("model", "Model", models === null ? null : models[mi]?.label ?? "default", models?.length ? `${mi + 1}/${models.length}` : undefined)}
+          {pickRow("model", "Model", models === null ? null : models[mi] ? modelLabel(models[mi]!) : "default", models?.length ? `${mi + 1}/${models.length}` : undefined)}
           {pickRow("mode", "Mode", provider?.modes[modeIdx]?.label ?? "default")}
           <box height={1} />
           <text fg={field === "prompt" ? t.accent : t.muted} attributes={field === "prompt" ? TextAttributes.BOLD : TextAttributes.NONE}>{"First message (optional)"}</text>
