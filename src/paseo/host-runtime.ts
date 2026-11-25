@@ -298,6 +298,16 @@ export class HostRuntime {
     this.store.actions.removeWorkspace(this.id, workspaceId);
   }
 
+  async removeProject(projectId: string) {
+    const { removedWorkspaceIds } = await this.api.daemon.removeProject(projectId);
+    for (const id of removedWorkspaceIds) {
+      this.shells.delete(id);
+      this.store.actions.removeWorkspace(this.id, id);
+    }
+    this.store.actions.removeProject(this.id, projectId);
+    return removedWorkspaceIds;
+  }
+
   async attachShell(
     workspaceId: string,
     command: string | undefined,

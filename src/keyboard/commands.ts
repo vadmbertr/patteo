@@ -63,6 +63,20 @@ export function confirmArchiveWorkspace(c: Pick<CommandCtx, "ui" | "store">, hos
   });
 }
 
+export function confirmRemoveProject(c: Pick<CommandCtx, "ui" | "store">, hostId: string, projectId: string) {
+  const host = c.store.getState().hosts[hostId];
+  const project = host?.projects[projectId];
+  if (!project) return;
+  c.ui.actions.openModal({
+    kind: "confirm",
+    title: "Remove project?",
+    body: `Remove “${project.projectCustomName || project.projectDisplayName || projectId}” from Paseo? All its workspaces and agents will be archived and terminals stopped. The project folder stays on disk; Paseo may remove managed worktrees.`,
+    confirmLabel: "Remove",
+    action: "project.remove",
+    payload: { hostId, projectId },
+  });
+}
+
 /**
  * The confirm dialog that deletes an agent for good, shared by the X key and
  * /delete (the composer's version of the same act).
@@ -120,6 +134,9 @@ export const COMMANDS: Command[] = [
   { id: "workspace.archive", title: "Archive a workspace…", group: "Workspace", keys: [],
     when: (c) => Object.values(selection(c).host?.workspaces ?? {}).some((w) => !w.archivingAt),
     run: (c) => c.ui.actions.openModal({ kind: "archiveWorkspace" }) },
+  { id: "project.remove", title: "Remove a project…", group: "Workspace", keys: [],
+    when: (c) => Object.keys(selection(c).host?.projects ?? {}).length > 0,
+    run: (c) => c.ui.actions.openModal({ kind: "removeProject" }) },
   { id: "terminal.toggle", title: "Toggle terminal", group: "Workspace", keys: ["f2"], inComposer: true,
     when: (c) => !!selection(c).workspace || c.ui.getState().terminalOpen, run: (c) => c.ui.actions.toggleTerminal() },
   { id: "panel.toggle", title: "Toggle files & changes panel", group: "Workspace", keys: ["C"], when: (c) => !!selection(c).workspace,
@@ -211,7 +228,7 @@ export const COMMANDS: Command[] = [
 export const LOCAL_KEYS: { group: string; keys: string; title: string }[] = [
   { group: "Sidebar", keys: "↑↓ j k", title: "Move" },
   { group: "Sidebar", keys: "⏎ / Space", title: "Open workspace · fold project" },
-  { group: "Sidebar", keys: "a", title: "Archive highlighted workspace…" },
+  { group: "Sidebar", keys: "a", title: "Archive workspace / remove project…" },
   { group: "Sidebar", keys: "h l", title: "Fold / unfold" },
   { group: "Tabs", keys: "1–9  [ ]", title: "Go to tab · previous / next" },
   { group: "Tabs", keys: "`", title: "Last used tab" },

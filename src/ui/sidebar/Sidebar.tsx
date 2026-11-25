@@ -1,6 +1,6 @@
 import { useKeyboard } from "@opentui/react";
 import { viewShouldIgnore } from "../../keyboard/dispatch";
-import { confirmArchiveWorkspace } from "../../keyboard/commands";
+import { confirmArchiveWorkspace, confirmRemoveProject } from "../../keyboard/commands";
 import { TextAttributes } from "@opentui/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useActiveHost, useApp, useUi } from "../../stores/context";
@@ -77,8 +77,9 @@ export function Sidebar({ height, width }: { height: number; width: number }) {
     const move = (d: number) => ui.actions.setCursor(moveCursor(rows, ui.getState().cursor ?? cursor, d));
     switch (k.name) {
       case "a":
-        if (!k.shift && !k.ctrl && !k.meta && !k.option && !k.super && row?.kind === "workspace") {
-          confirmArchiveWorkspace({ ui, store }, hostId, row.workspaceId);
+        if (!k.shift && !k.ctrl && !k.meta && !k.option && !k.super) {
+          if (row?.kind === "workspace") confirmArchiveWorkspace({ ui, store }, hostId, row.workspaceId);
+          if (row?.kind === "project") confirmRemoveProject({ ui, store }, hostId, row.projectId);
         }
         return;
       case "j":

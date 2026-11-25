@@ -124,6 +124,7 @@ The **Files** tab is the workspace's tree, listed by the daemon (so it works for
 - **Resize panes** by dragging the vertical dividers with the left mouse button. Sizes are remembered until Patteo exits.
 - **Add a folder** (`A`) as a workspace, with shell-style `Tab` completion.
 - **Archive a workspace**: highlight it in the sidebar and press `a`, or use **Archive a workspace…** from Ctrl-K to search the active host. Both ask before archiving.
+- **Remove a project**: highlight its sidebar header and press `a`, or use **Remove a project…** from Ctrl-K. Paseo removes the project from its registry and archives its workspaces without deleting the project folder.
 - **Many hosts** (`H`): add, rename, reconnect and switch between daemons.
 - **Live conversation** with markdown, code blocks, tables and mermaid diagrams, and the agent's activity folded into one quiet line (`e` expands it).
 - **Permission requests**: allow or deny from a dialog, with the provider's own options.

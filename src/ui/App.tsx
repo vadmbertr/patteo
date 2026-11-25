@@ -155,6 +155,8 @@ function ModalLayer() {
       return <AddFolderModal thenAgent={modal.thenAgent} />;
     case "archiveWorkspace":
       return <ArchiveWorkspaceModal />;
+    case "removeProject":
+      return <ArchiveWorkspaceModal projects />;
     case "settings":
       return <SettingsModal initialSection={modal.section} />;
     case "mode":
@@ -175,6 +177,14 @@ function ModalLayer() {
 /** What a confirmed action does. */
 function useConfirmAction() {
   const { ui, store, runtimes } = useApp();
+  const forgetWorkspace = (hostId: string, workspaceId: string) => {
+    if (store.getState().activeHostId === hostId && ui.getState().selectedWorkspace[hostId] === workspaceId) {
+      ui.actions.setDiffPath(null);
+      ui.actions.setFilePath(null);
+      ui.actions.setFocus(ui.getState().sidebarVisible ? "sidebar" : "main");
+    }
+    ui.actions.forgetWorkspace(hostId, workspaceId);
+  };
   return async (modal: Extract<Modal, { kind: "confirm" }>) => {
     try {
       if (modal.action === "agent.archive") {
@@ -201,13 +211,14 @@ function useConfirmAction() {
         const runtime = runtimes.get(hostId);
         if (!runtime) throw new Error("Host unavailable");
         await runtime.archiveWorkspace(workspaceId);
-        if (store.getState().activeHostId === hostId && ui.getState().selectedWorkspace[hostId] === workspaceId) {
-          ui.actions.setDiffPath(null);
-          ui.actions.setFilePath(null);
-          ui.actions.setFocus("sidebar");
-        }
-        ui.actions.forgetWorkspace(hostId, workspaceId);
+        forgetWorkspace(hostId, workspaceId);
         ui.actions.toast("Workspace archived", "success");
+      } else if (modal.action === "project.remove") {
+        const { hostId, projectId } = modal.payload as { hostId: string; projectId: string };
+        const runtime = runtimes.get(hostId);
+        if (!runtime) throw new Error("Host unavailable");
+        for (const id of await runtime.removeProject(projectId)) forgetWorkspace(hostId, id);
+        ui.actions.toast("Project removed", "success");
       } else if (modal.action === "workspace.pr") {
         const [hostId, workspaceId] = String(modal.payload).split(":");
         if (!hostId || !workspaceId) throw new Error("No workspace selected");

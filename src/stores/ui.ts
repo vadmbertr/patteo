@@ -27,6 +27,7 @@ export type Modal =
   | { kind: "editHost"; id: string; label: string }
   | { kind: "addFolder"; thenAgent?: boolean }
   | { kind: "archiveWorkspace" }
+  | { kind: "removeProject" }
   | { kind: "settings"; section?: string }
   | { kind: "model" }
   | { kind: "mode" }
