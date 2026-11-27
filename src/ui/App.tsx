@@ -1,3 +1,4 @@
+// Modified by Paseo Box: render the emissions overlay in the modal layer.
 import { useTerminalDimensions } from "@opentui/react";
 import { useEffect, useRef, useState } from "react";
 import { useApp, useSession, useSettings, useUi } from "../stores/context";
@@ -7,6 +8,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { ExplorerPanel, PANEL_MIN_TERM_WIDTH, panelWidth } from "./explorer/ExplorerPanel";
 import { AddFolderModal } from "./modals/AddFolderModal";
 import { ArchiveWorkspaceModal } from "./modals/ArchiveWorkspaceModal";
+import { EmissionsModal } from "./modals/EmissionsModal";
 import { AddHostModal, EditHostModal, HostsModal } from "./modals/HostsModals";
 import { NewAgentModal } from "./modals/NewAgentModal";
 import { PermissionsModal } from "./modals/PermissionsModal";
@@ -141,6 +143,8 @@ function ModalLayer() {
       return <PaletteModal />;
     case "help":
       return <HelpModal />;
+    case "emissions":
+      return <EmissionsModal />;
     case "newAgent":
       return <NewAgentModal target={modal.target} />;
     case "permissions":

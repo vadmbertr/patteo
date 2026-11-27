@@ -1,0 +1,54 @@
+{
+  "$comment": "SPDX-License-Identifier: Apache-2.0; added by Paseo Box for emissions tests.",
+  "populated": {
+    "label": "Estimated LLM emissions (EcoLogits; not measured)",
+    "units": { "co2e": "gCO2e", "energy": "kWh" },
+    "generatedAt": "2026-11-27T14:32:07.000Z",
+    "windows": [
+      { "id": "day", "label": "last 24 hours", "since": "2026-11-26T14:32:07.000Z" },
+      { "id": "week", "label": "last 7 days", "since": "2026-11-20T14:32:07.000Z" },
+      { "id": "month", "label": "last 30 days", "since": "2026-10-28T14:32:07.000Z" }
+    ],
+    "byModel": [
+      {
+        "providerID": "zeta",
+        "modelID": "large",
+        "day": { "estimatedTurns": 1, "co2eGrams": { "min": 1.2, "max": 1.4 }, "energyKWh": { "min": 0.000012, "max": 0.000014 } },
+        "week": { "estimatedTurns": 2, "co2eGrams": { "min": 2.4, "max": 2.8 }, "energyKWh": { "min": 0.000024, "max": 0.000028 } },
+        "month": { "estimatedTurns": 3, "co2eGrams": { "min": 3.6, "max": 4.2 }, "energyKWh": { "min": 0.000036, "max": 0.000042 } }
+      },
+      {
+        "providerID": "alpha",
+        "modelID": "超-long-abcdefghijklmnopqrstuvwxyz-0123456789",
+        "day": { "estimatedTurns": 0, "co2eGrams": { "min": 0, "max": 0 }, "energyKWh": { "min": 0, "max": 0 } },
+        "week": { "estimatedTurns": 1, "co2eGrams": { "min": 0.6, "max": 0.6 }, "energyKWh": { "min": 0.00001, "max": 0.00001 } },
+        "month": { "estimatedTurns": 1, "co2eGrams": { "min": 0.6, "max": 0.6 }, "energyKWh": { "min": 0.00001, "max": 0.00001 } }
+      }
+    ],
+    "total": {
+      "day": { "estimatedTurns": 1, "unsupportedTurns": 1, "observedTurns": 2, "co2eGrams": { "min": 1.2, "max": 1.4 }, "energyKWh": { "min": 0.000012, "max": 0.000014 } },
+      "week": { "estimatedTurns": 3, "unsupportedTurns": 1, "observedTurns": 4, "co2eGrams": { "min": 3, "max": 3.4 }, "energyKWh": { "min": 0.000034, "max": 0.000038 } },
+      "month": { "estimatedTurns": 4, "unsupportedTurns": 2, "observedTurns": 6, "co2eGrams": { "min": 4.2, "max": 4.8 }, "energyKWh": { "min": 0.000046, "max": 0.000052 } }
+    },
+    "untimeableRecords": 1,
+    "limitations": ["Proxy estimates, not measurements."]
+  },
+  "empty": {
+    "label": "Estimated LLM emissions (EcoLogits; not measured)",
+    "units": { "co2e": "gCO2e", "energy": "kWh" },
+    "generatedAt": "2026-11-27T14:32:07.000Z",
+    "windows": [
+      { "id": "day", "label": "last 24 hours", "since": "2026-11-26T14:32:07.000Z" },
+      { "id": "week", "label": "last 7 days", "since": "2026-11-20T14:32:07.000Z" },
+      { "id": "month", "label": "last 30 days", "since": "2026-10-28T14:32:07.000Z" }
+    ],
+    "byModel": [],
+    "total": {
+      "day": { "estimatedTurns": 0, "unsupportedTurns": 0, "observedTurns": 0, "co2eGrams": { "min": 0, "max": 0 }, "energyKWh": { "min": 0, "max": 0 } },
+      "week": { "estimatedTurns": 0, "unsupportedTurns": 0, "observedTurns": 0, "co2eGrams": { "min": 0, "max": 0 }, "energyKWh": { "min": 0, "max": 0 } },
+      "month": { "estimatedTurns": 0, "unsupportedTurns": 0, "observedTurns": 0, "co2eGrams": { "min": 0, "max": 0 }, "energyKWh": { "min": 0, "max": 0 } }
+    },
+    "untimeableRecords": 0,
+    "limitations": ["Proxy estimates, not measurements."]
+  }
+}

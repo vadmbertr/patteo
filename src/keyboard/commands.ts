@@ -1,3 +1,4 @@
+// Modified by Paseo Box: register the emissions overlay and its local keys.
 /**
  * Every app action is a named command. The palette, the help screen, key handling and
  * user keymaps (settings.keymap) all read this one registry — the Desktop app's
@@ -117,6 +118,7 @@ async function attempt(ctx: CommandCtx, work: () => Promise<unknown>, ok?: strin
 export const COMMANDS: Command[] = [
   { id: "palette.open", title: "Command palette", group: "General", keys: ["ctrl+k", "ctrl+p"], inComposer: true, hidden: true, run: (c) => c.ui.actions.openModal({ kind: "palette" }) },
   { id: "help.open", title: "Keyboard shortcuts", group: "General", keys: ["?"], run: (c) => c.ui.actions.openModal({ kind: "help" }) },
+  { id: "emissions.open", title: "LLM emissions…", group: "General", keys: ["E"], run: (c) => c.ui.actions.openModal({ kind: "emissions" }) },
   { id: "settings.open", title: "Settings", group: "General", keys: [",", "ctrl+,"], run: (c) => c.ui.actions.openModal({ kind: "settings" }) },
   { id: "app.quit", title: "Quit", group: "General", keys: ["q"], run: (c) => c.quit() },
 
@@ -242,6 +244,7 @@ export const LOCAL_KEYS: { group: string; keys: string; title: string }[] = [
   { group: "Panel", keys: "o  ⏎", title: "PR: open in browser · create" },
   { group: "Composer", keys: "⏎  ⌥⏎ / ^J", title: "Send · new line" },
   { group: "Composer", keys: "Esc", title: "Leave the composer" },
+  { group: "Emissions", keys: "↑↓  r  Esc", title: "Scroll · refresh · close" },
 ];
 
 /** Defaults overridden by settings.keymap. */

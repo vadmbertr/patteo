@@ -1,3 +1,4 @@
+// Modified by Paseo Box: add the emissions modal kind.
 import { createStore } from "zustand/vanilla";
 import * as T from "../ui/workspace/tabs-model";
 
@@ -20,6 +21,7 @@ export const PANEL_TABS: PanelTab[] = ["files", "changes", "pr"];
 export type Modal =
   | { kind: "palette" }
   | { kind: "help" }
+  | { kind: "emissions" }
   | { kind: "newAgent"; target?: AgentTarget }
   | { kind: "permissions" }
   | { kind: "hosts" }
